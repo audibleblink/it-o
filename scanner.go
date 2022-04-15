@@ -1,4 +1,4 @@
-//go:build aix || darwin || dragonfly || freebsd || linux || netbsd || openbsd || solaris
+//go:build aix || freebsd || linux || netbsd || openbsd || solaris
 
 package main
 
@@ -19,7 +19,7 @@ func MemSearch(proc Proc, matcher *regexp.Regexp, resultCh chan Result) error {
 	defer f.Close()
 
 	reader := bufio.NewReader(f)
-	var line string
+	var line []byte
 
 	// Iterate through the memory locations passed by caller.
 	maps, err := proc.ProcMaps()
@@ -46,7 +46,7 @@ func MemSearch(proc Proc, matcher *regexp.Regexp, resultCh chan Result) error {
 
 		for currPos < end {
 
-			line, err = reader.ReadString('\x00')
+			line, err = reader.ReadBytes(0)
 			if err != nil {
 				return fmt.Errorf("read of %s at offset 0x%x failed: %s", f.Name(), currPos, err)
 			}
@@ -59,7 +59,7 @@ func MemSearch(proc Proc, matcher *regexp.Regexp, resultCh chan Result) error {
 				continue
 			}
 
-			matches := matcher.FindAllString(line, -1)
+			matches := matcher.FindAll(line, -1)
 			if matches == nil {
 				continue
 			}

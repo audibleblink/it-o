@@ -1,3 +1,5 @@
+//go:build aix || freebsd || linux || netbsd || openbsd || solaris
+
 package main
 
 import (
@@ -25,7 +27,7 @@ func init() {
 type Result struct {
 	PID    int
 	Offset int64
-	Match  string
+	Match  []byte
 }
 
 func (r Result) String() string {
