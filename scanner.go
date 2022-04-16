@@ -50,8 +50,8 @@ func MemSearch(proc Proc, matcher *regexp.Regexp, resultCh chan []*Result) error
 		buf := make([]*Line, around*2+1, around*2+1)
 		for currPos < end {
 
-			preReadPos, _ := f.Seek(0, io.SeekCurrent)
 			line, err := reader.ReadString(0)
+			preReadPos := currPos - int64(len(line))
 			if err != nil {
 				return fmt.Errorf("read of %s at offset 0x%x failed: %s", f.Name(), preReadPos, err)
 			}
@@ -85,8 +85,8 @@ func MemSearch(proc Proc, matcher *regexp.Regexp, resultCh chan []*Result) error
 			// get remaining string when -C was passed
 			for i := 0; i < around; i++ {
 
-				preReadPos, _ := f.Seek(0, io.SeekCurrent)
 				line, err := reader.ReadString(0)
+				preReadPos := currPos - int64(len(line))
 				if err != nil {
 					return fmt.Errorf("read of %s at offset 0x%x failed: %s", f.Name(), currPos, err)
 				}

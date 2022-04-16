@@ -72,5 +72,5 @@ type Result struct {
 
 func (r Result) String() string {
 	tmpl := "0x%012x\t%d\t%q"
-	return fmt.Sprintf(tmpl, r.PID, r.Offset, r.Match)
+	return fmt.Sprintf(tmpl, r.Offset, r.PID, r.Match)
 }
