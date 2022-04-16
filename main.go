@@ -1,4 +1,4 @@
-//go:build aix || freebsd || linux || netbsd || openbsd || solaris
+//go:build aix || freebsd || linux || netbsd || openbsd || solaris || darwin
 
 package main
 
@@ -12,11 +12,15 @@ import (
 var (
 	pattern string
 	pid     int
+	around  int
+	only    bool
 )
 
 func init() {
-	flag.IntVar(&pid, "pid", 0, "pid to search")
-	flag.StringVar(&pattern, "pattern", "", "regex pattern to search")
+	flag.IntVar(&pid, "p", 0, "pid to search")
+	flag.StringVar(&pattern, "r", "", "regex pattern to search")
+	flag.IntVar(&around, "C", 0, "pid to search")
+	flag.BoolVar(&only, "o", false, "return only the matching portion")
 	flag.Parse()
 
 	if pid == 0 || pattern == "" {
@@ -24,24 +28,22 @@ func init() {
 	}
 }
 
-type Result struct {
-	PID    int
-	Offset int64
-	Match  []byte
-}
-
-func (r Result) String() string {
-	tmpl := "%d\t0x%012x\t%s"
-	return fmt.Sprintf(tmpl, r.PID, r.Offset, r.Match)
-}
-
 func main() {
 
-	resultsCh := make(chan Result)
+	resultsCh := make(chan []*Result)
 
-	go func(ch chan Result) {
-		for res := range ch {
-			fmt.Println(res.String())
+	go func(ch chan []*Result) {
+
+		for resSlice := range ch {
+			if len(resSlice) == 1 {
+				fmt.Println(resSlice[0].String())
+				continue
+			}
+
+			for _, res := range resSlice {
+				fmt.Println(res.String())
+			}
+			fmt.Println("-------")
 		}
 	}(resultsCh)
 
@@ -60,4 +62,15 @@ func main() {
 	if err != nil {
 		log.Fatalln(err)
 	}
+}
+
+type Result struct {
+	PID    int
+	Offset int64
+	Match  string
+}
+
+func (r Result) String() string {
+	tmpl := "0x%012x\t%d\t%s"
+	return fmt.Sprintf(tmpl, r.PID, r.Offset, r.Match)
 }
