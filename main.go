@@ -32,8 +32,8 @@ func main() {
 
 	resultsCh := make(chan []*Result)
 
+	// continuously print results as they come in
 	go func(ch chan []*Result) {
-
 		for resSlice := range ch {
 			if len(resSlice) == 1 {
 				fmt.Println(resSlice[0].String())
@@ -71,6 +71,6 @@ type Result struct {
 }
 
 func (r Result) String() string {
-	tmpl := "0x%012x\t%d\t%s"
+	tmpl := "0x%012x\t%d\t%q"
 	return fmt.Sprintf(tmpl, r.PID, r.Offset, r.Match)
 }

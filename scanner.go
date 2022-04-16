@@ -9,6 +9,7 @@ import (
 	"os"
 	"regexp"
 	"strings"
+	"unicode"
 )
 
 type Line struct {
@@ -57,6 +58,9 @@ func MemSearch(proc Proc, matcher *regexp.Regexp, resultCh chan []*Result) error
 			// update current position to post-read location
 			currPos, _ = f.Seek(0, io.SeekCurrent)
 
+			// remove unprintable chars
+			line = printable(line)
+
 			// no need to continue if it's smaller than our pattern
 			if len(line) < len(matcher.String()) {
 				continue
@@ -78,15 +82,26 @@ func MemSearch(proc Proc, matcher *regexp.Regexp, resultCh chan []*Result) error
 			// append result, while cropping out oldest string
 			buf = append(buf[around+1:], res)
 
+			// get remaining string when -C was passed
 			for i := 0; i < around; i++ {
+
 				preReadPos, _ := f.Seek(0, io.SeekCurrent)
 				line, err := reader.ReadString(0)
 				if err != nil {
 					return fmt.Errorf("read of %s at offset 0x%x failed: %s", f.Name(), currPos, err)
 				}
 				currPos, _ = f.Seek(0, io.SeekCurrent) // update current position
-				res := &Line{data: line, pos: preReadPos}
-				buf = append(buf, res)
+
+				// remove unprintable chars
+				line = printable(line)
+
+				// no need to continue if it's smaller than our pattern
+				if len(line) < len(matcher.String()) {
+					i -= 1
+					continue
+				}
+
+				buf = append(buf, &Line{data: line, pos: preReadPos})
 			}
 
 			var results []*Result
@@ -98,4 +113,13 @@ func MemSearch(proc Proc, matcher *regexp.Regexp, resultCh chan []*Result) error
 	}
 
 	return nil
+}
+
+func printable(in string) string {
+	return strings.Map(func(r rune) rune {
+		if unicode.IsGraphic(r) {
+			return r
+		}
+		return -1
+	}, in)
 }
