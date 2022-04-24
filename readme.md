@@ -3,7 +3,7 @@
 Hacky linux memory probe. 
 
 ```
-memscan -p 123 -r '.{20}[D|d]roid.{20}'
+ito -p 123 -r '.{20}[D|d]roid.{20}'
 
 123	0x000002645f60	State)({username:"droid",password:""}),t=b(d.
 123	0x000002645f60	x)(Xl.Input,{label:"Droid",name:"password", "
