@@ -19,7 +19,7 @@ var (
 func init() {
 	flag.IntVar(&pid, "p", 0, "pid to search")
 	flag.StringVar(&pattern, "r", "", "regex pattern to search")
-	flag.IntVar(&around, "C", 0, "pid to search")
+	flag.IntVar(&around, "C", 0, "number of lines to show around the match")
 	flag.BoolVar(&only, "o", false, "return only the matching portion")
 	flag.Parse()
 
