@@ -4,17 +4,84 @@ package main
 
 import (
 	"bufio"
+	"embed"
 	"fmt"
 	"io"
+	"log"
 	"os"
 	"regexp"
 	"strings"
 	"unicode"
+
+	"github.com/hillu/go-yara/v4"
 )
+
+//go:embed rules/*
+var YaRule embed.FS
 
 type Line struct {
 	pos  int64
 	data string
+}
+
+func YaraSearch(pid int, resultCh chan []*Result) error {
+	compiler, err := yara.NewCompiler()
+	if err != nil {
+		log.Fatalf("Failed to init YARA parser: %s", err)
+	}
+
+	files, err := YaRule.ReadDir("rules")
+	if err != nil {
+		log.Fatalf("Faild to read embedded rules: %s", err)
+	}
+
+	for _, ruleFile := range files {
+		ruleBytes, err := YaRule.ReadFile(fmt.Sprintf("rules/%s", ruleFile.Name()))
+		if err != nil {
+			log.Fatalf("read file: %s", err)
+		}
+
+		err = compiler.AddString(string(ruleBytes), "it-o")
+		if err != nil {
+			fmt.Println(string(ruleBytes))
+			log.Fatalf("error adding rule string: %s", err)
+		}
+	}
+
+	compiledRules, err := compiler.GetRules()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	var matches yara.MatchRules
+	scanner, err := yara.NewScanner(compiledRules)
+	if err != nil {
+		log.Fatal(err)
+	}
+	err = scanner.SetCallback(&matches).ScanProc(pid)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	var results []*Result
+
+	wg.Add(len(matches))
+	for _, match := range matches {
+		for _, mStr := range match.Strings {
+
+			result := &Result{
+				PID:    pid,
+				Offset: int64(mStr.Offset),
+				Match:  string(mStr.Data),
+				Name:   match.Rule,
+			}
+
+			results = append(results, result)
+			resultCh <- results
+		}
+		wg.Done()
+	}
+	return err
 }
 
 func MemSearch(proc Proc, matcher *regexp.Regexp, resultCh chan []*Result) error {
@@ -106,7 +173,7 @@ func MemSearch(proc Proc, matcher *regexp.Regexp, resultCh chan []*Result) error
 
 			var results []*Result
 			for _, r := range buf {
-				results = append(results, &Result{pid, r.pos, r.data})
+				results = append(results, &Result{pid, r.pos, r.data, ""})
 			}
 			resultCh <- results
 		}
