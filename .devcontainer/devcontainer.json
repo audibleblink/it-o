@@ -1,0 +1,22 @@
+{
+	"name": "ito",
+	"image": "debian:latest",
+
+	"features": {
+		"ghcr.io/devcontainers/features/go:1": {}
+	},
+
+	"customizations": {
+		"vscode": {
+			"settings": {},
+			"extensions": [
+				"asvetliakov.vscode-neovim",
+			]
+		}
+	},
+	"postCreateCommand": [
+		"apt-get -q update",
+		"apt-get install -qqy neovim automake libtool gcc pkg-config make wget",
+		"make yara"
+	]
+}
