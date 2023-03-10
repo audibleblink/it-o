@@ -8,15 +8,11 @@
 
 	"customizations": {
 		"vscode": {
-			"settings": {},
 			"extensions": [
 				"asvetliakov.vscode-neovim",
 			]
+			"settings": {},
 		}
 	},
-	"postCreateCommand": [
-		"apt-get -q update",
-		"apt-get install -qqy neovim automake libtool gcc pkg-config make wget",
-		"make yara"
-	]
+	"postCreateCommand": ["./setup.sh"]
 }
