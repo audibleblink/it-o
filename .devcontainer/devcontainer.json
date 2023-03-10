@@ -3,7 +3,10 @@
 	"image": "debian:latest",
 
 	"features": {
-		"ghcr.io/devcontainers/features/go:1": {}
+		"ghcr.io/devcontainers/features/go:1": {},
+		"ghcr.io/audibleblink/devcontainer-features/apt-get-packages:latest": {
+			"packages": "automake libtool gcc pkg-config make neovim wget"
+		}
 	},
 
 	"customizations": {
@@ -14,5 +17,5 @@
 			"settings": {},
 		}
 	},
-	"postCreateCommand": ["./setup.sh"]
+	"postCreateCommand": ["make", "yara"]
 }
