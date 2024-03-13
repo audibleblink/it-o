@@ -1,7 +1,7 @@
 TAGS = yara_static
 LDFLAGS = '-extldflags=-static'
 
-YARA_VERSION = 4.2.1
+YARA_VERSION = 4.5.0
 BUILD_DIR ?= yara-build
 SRC = $(BUILD_DIR)/yara-$(YARA_VERSION)
 YARA_BIN = $(BUILD_DIR)/bin/yara

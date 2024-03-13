@@ -34,7 +34,6 @@ func init() {
 }
 
 func main() {
-
 	resultsCh := make(chan []*Result)
 
 	// continuously print results as they come in
