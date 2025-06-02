@@ -24,31 +24,56 @@ type Line struct {
 	data string
 }
 
-func YaraSearch(pid int, resultCh chan []*Result) error {
+func compileYaraRules() (*yara.Rules, error) {
 	compiler, err := yara.NewCompiler()
 	if err != nil {
-		log.Fatalf("Failed to init YARA parser: %s", err)
+		return nil, fmt.Errorf("failed to init YARA parser: %s", err)
 	}
 
 	files, err := YaRule.ReadDir("rules")
 	if err != nil {
-		log.Fatalf("Faild to read embedded rules: %s", err)
+		return nil, fmt.Errorf("failed to read embedded rules: %s", err)
 	}
 
 	for _, ruleFile := range files {
 		ruleBytes, err := YaRule.ReadFile(fmt.Sprintf("rules/%s", ruleFile.Name()))
 		if err != nil {
-			log.Fatalf("read file: %s", err)
+			return nil, fmt.Errorf("read file: %s", err)
 		}
 
 		err = compiler.AddString(string(ruleBytes), "it-o")
 		if err != nil {
 			fmt.Println(string(ruleBytes))
-			log.Fatalf("error adding rule string: %s", err)
+			return nil, fmt.Errorf("error adding rule string: %s", err)
 		}
 	}
 
-	compiledRules, err := compiler.GetRules()
+	return compiler.GetRules()
+}
+
+func processMatches(matches yara.MatchRules, resultCh chan []*Result, pid int, path string) {
+	var results []*Result
+
+	wg.Add(len(matches))
+	for _, match := range matches {
+		for _, mStr := range match.Strings {
+			result := &Result{
+				PID:    pid,
+				Path:   path,
+				Offset: int64(mStr.Offset),
+				Match:  string(mStr.Data),
+				Name:   match.Rule,
+			}
+
+			results = append(results, result)
+			resultCh <- results
+		}
+		wg.Done()
+	}
+}
+
+func YaraSearchPid(pid int, resultCh chan []*Result) error {
+	compiledRules, err := compileYaraRules()
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -63,29 +88,11 @@ func YaraSearch(pid int, resultCh chan []*Result) error {
 		log.Fatal(err)
 	}
 
-	var results []*Result
-
-	wg.Add(len(matches))
-	for _, match := range matches {
-		for _, mStr := range match.Strings {
-
-			result := &Result{
-				PID:    pid,
-				Offset: int64(mStr.Offset),
-				Match:  string(mStr.Data),
-				Name:   match.Rule,
-			}
-
-			results = append(results, result)
-			resultCh <- results
-		}
-		wg.Done()
-	}
+	processMatches(matches, resultCh, pid, "")
 	return err
 }
 
 func MemSearch(proc Proc, matcher *regexp.Regexp, resultCh chan []*Result) error {
-
 	f, err := os.Open(proc.fs.Path("mem"))
 	if err != nil {
 		return fmt.Errorf("failed to open %s: %s", f.Name(), err)
@@ -173,13 +180,33 @@ func MemSearch(proc Proc, matcher *regexp.Regexp, resultCh chan []*Result) error
 
 			var results []*Result
 			for _, r := range buf {
-				results = append(results, &Result{pid, r.pos, r.data, ""})
+				results = append(results, &Result{PID: pid, Offset: r.pos, Match: r.data, Name: ""})
 			}
 			resultCh <- results
 		}
 	}
 
 	return nil
+}
+
+func YaraSearchFile(path string, resultCh chan []*Result) error {
+	compiledRules, err := compileYaraRules()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	var matches yara.MatchRules
+	scanner, err := yara.NewScanner(compiledRules)
+	if err != nil {
+		log.Fatal(err)
+	}
+	err = scanner.SetCallback(&matches).ScanFile(path)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	processMatches(matches, resultCh, 0, path)
+	return err
 }
 
 func printable(in string) string {

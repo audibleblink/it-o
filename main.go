@@ -13,6 +13,7 @@ import (
 var (
 	// yaraFile string
 	pattern      string
+	path         string
 	pid          int
 	around       int
 	only         bool
@@ -26,9 +27,10 @@ func init() {
 	flag.IntVar(&around, "C", 0, "number of lines to show around the match")
 	flag.BoolVar(&only, "o", false, "return only the matching portion")
 	flag.BoolVar(&embeddedYara, "Y", false, "use yara rules embedded at buildtime")
+	flag.StringVar(&path, "f", "", "file to scan (if not using -p)")
 	flag.Parse()
 
-	if pid == 0 || (!embeddedYara) {
+	if (pid == 0) || (!embeddedYara) || (path == "") {
 		flag.Usage()
 	}
 }
@@ -52,8 +54,12 @@ func main() {
 	}(resultsCh)
 
 	if embeddedYara {
-
-		err := YaraSearch(pid, resultsCh)
+		var err error
+		if path != "" {
+			err = YaraSearchFile(path, resultsCh)
+		} else {
+			err = YaraSearchPid(pid, resultsCh)
+		}
 		if err != nil {
 			log.Fatalln(err)
 		}
@@ -81,6 +87,7 @@ func main() {
 }
 
 type Result struct {
+	Path   string
 	PID    int
 	Offset int64
 	Match  string
