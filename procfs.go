@@ -206,7 +206,7 @@ func NewProc(pid int) (Proc, error) {
 // ProcMaps reads from /proc/[pid]/maps to get the memory-mappings of the
 // process.
 func (p Proc) ProcMaps() ([]*ProcMap, error) {
-	var maps = make([]*ProcMap, 1)
+       var maps []*ProcMap
 	file, err := os.Open(p.fs.Path("maps"))
 	if err != nil {
 		return maps, err

@@ -30,9 +30,9 @@ func init() {
 	flag.StringVar(&path, "f", "", "file to scan (if not using -p)")
 	flag.Parse()
 
-	if (pid == 0) || (!embeddedYara) || (path == "") {
-		flag.Usage()
-	}
+       if (pid == 0 && path == "") || (!embeddedYara && pattern == "") {
+               flag.Usage()
+       }
 }
 
 func main() {
