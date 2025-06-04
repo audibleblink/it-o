@@ -26,8 +26,13 @@ ito -p 123 -Y
 
 ## Yara
 
-Rules in the `rules` directory are embedded in the resulting binary. Use the -Y flag to run them
-against a PID.
+Rules in the `rules` directory are embedded in the resulting binary. Use `-Y`
+with `-p <pid>` to scan a running process or with `-f <file>` to scan a file.
+For example,
+
+```go
+ito -Y -f /path/to/binary
+```
 
 Project uses https://github.com/hillu/go-yara go bindings which means CGO.
 Deps:
