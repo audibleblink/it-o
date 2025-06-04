@@ -13,6 +13,12 @@ ito -p 123 -r '.{20}[D|d]roid.{20}'
 ...
 ```
 
+Regex searches can also be run on files.
+
+```go
+ito -f /path/to/file -r 'mysecret'
+```
+
 Or use baked-in yara rules to search for multiple things at once.
 ```go
 ito -p 123 -Y

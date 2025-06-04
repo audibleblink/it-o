@@ -209,6 +209,80 @@ func YaraSearchFile(path string, resultCh chan []*Result) error {
 	return err
 }
 
+func RegexSearchFile(path string, matcher *regexp.Regexp, resultCh chan []*Result) error {
+	f, err := os.Open(path)
+	if err != nil {
+		return fmt.Errorf("failed to open %s: %s", path, err)
+	}
+	defer f.Close()
+
+	reader := bufio.NewReader(f)
+	var currPos int64
+	buf := make([]*Line, around*2+1, around*2+1)
+
+	for {
+		line, err := reader.ReadString('\n')
+		preReadPos := currPos
+		if err != nil && err != io.EOF {
+			return fmt.Errorf("read of %s at offset 0x%x failed: %s", f.Name(), preReadPos, err)
+		}
+		currPos += int64(len(line))
+
+		line = printable(line)
+
+		if len(line) >= len(matcher.String()) {
+			res := &Line{data: line, pos: preReadPos}
+			matches := matcher.FindAllString(line, -1)
+
+			if matches != nil {
+				if only {
+					res.data = strings.Join(matches, " | ")
+				}
+
+				buf = append(buf[around+1:], res)
+
+				for i := 0; i < around; i++ {
+					line, err := reader.ReadString('\n')
+					preReadPos := currPos
+					if err != nil && err != io.EOF {
+						return fmt.Errorf("read of %s at offset 0x%x failed: %s", f.Name(), currPos, err)
+					}
+					currPos += int64(len(line))
+
+					line = printable(line)
+
+					if len(line) < len(matcher.String()) {
+						i -= 1
+						if err == io.EOF {
+							break
+						}
+						continue
+					}
+
+					buf = append(buf, &Line{data: line, pos: preReadPos})
+					if err == io.EOF {
+						break
+					}
+				}
+
+				var results []*Result
+				for _, r := range buf {
+					results = append(results, &Result{Path: path, Offset: r.pos, Match: r.data})
+				}
+				resultCh <- results
+			} else {
+				buf = append(buf[1:], res)
+			}
+		}
+
+		if err == io.EOF {
+			break
+		}
+	}
+
+	return nil
+}
+
 func printable(in string) string {
 	return strings.Map(func(r rune) rune {
 		if unicode.IsGraphic(r) {
