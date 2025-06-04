@@ -6,7 +6,9 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"os"
 	"regexp"
+	"strings"
 	"sync"
 )
 
@@ -28,6 +30,10 @@ func init() {
 	flag.BoolVar(&only, "o", false, "return only the matching portion")
 	flag.BoolVar(&embeddedYara, "Y", false, "use yara rules embedded at buildtime")
 	flag.StringVar(&path, "f", "", "file to scan (if not using -p)")
+	if strings.HasSuffix(os.Args[0], ".test") {
+		return
+	}
+
 	flag.Parse()
 
        if (pid == 0 && path == "") || (!embeddedYara && pattern == "") {
