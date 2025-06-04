@@ -36,9 +36,9 @@ func init() {
 
 	flag.Parse()
 
-       if (pid == 0 && path == "") || (!embeddedYara && pattern == "") {
-               flag.Usage()
-       }
+	if (pid == 0 && path == "") || (!embeddedYara && pattern == "") {
+		flag.Usage()
+	}
 }
 
 func main() {
@@ -73,19 +73,23 @@ func main() {
 		return
 
 	} else {
-
-		procfs, err := NewFS(DefaultProcMountPoint)
-		if err != nil {
-			log.Fatalln(err)
-		}
-
-		proc, err := procfs.Proc(pid)
-		if err != nil {
-			log.Fatalln(err)
-		}
-
+		var err error
 		matcher := regexp.MustCompile(pattern)
-		err = MemSearch(proc, matcher, resultsCh)
+		if path != "" {
+			err = RegexSearchFile(path, matcher, resultsCh)
+		} else {
+			procfs, err := NewFS(DefaultProcMountPoint)
+			if err != nil {
+				log.Fatalln(err)
+			}
+
+			proc, err := procfs.Proc(pid)
+			if err != nil {
+				log.Fatalln(err)
+			}
+
+			err = MemSearch(proc, matcher, resultsCh)
+		}
 		if err != nil {
 			log.Fatalln(err)
 		}
